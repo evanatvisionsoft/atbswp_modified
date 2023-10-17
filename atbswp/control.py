@@ -39,6 +39,9 @@ import wx
 import wx.adv
 import wx.lib.newevent as NE
 
+import pyclip
+import pypng
+
 
 TMP_PATH = os.path.join(tempfile.gettempdir(),
                         "atbswp-" + date.today().strftime("%Y%m%d"))
@@ -173,6 +176,9 @@ class RecordCtrl:
         LOOKUP_SPECIAL_KEY[keyboard.Key.pause] = 'pause'
         LOOKUP_SPECIAL_KEY[keyboard.Key.print_screen] = 'print_screen'
         LOOKUP_SPECIAL_KEY[keyboard.Key.scroll_lock] = 'scroll_lock'
+        #TODO:SETUP MAINFRAME CONTROL KEYS
+        #LOOKUP_SPECIAL_KEY[keyboard.Key.]
+
 
     def write_mouse_action(self, engine="pyautogui", move="", parameters=""):
         """Append a new mouse move to capture.
@@ -382,6 +388,9 @@ class RecordCtrl:
             self.countdown_dialog.Update(
                 self.timer, f"The recording will start in {self.timer} second(s)")
 
+class ControlKeys:
+    def __init__(self):
+        pass
 
 class PlayCtrl:
     """Control class for the play button."""
@@ -458,6 +467,32 @@ class CompileCtrl:
         """
         try:
             bytecode_path = py_compile.compile(TMP_PATH)
+        except:
+            wx.LogError("No capture loaded")
+            return
+        default_file = "capture.pyc"
+        event.EventObject.Parent.panel.SetFocus()
+        with wx.FileDialog(parent=event.GetEventObject().Parent, message="Save capture executable",
+                           defaultDir=os.path.expanduser("~"), defaultFile=default_file, wildcard="*",
+                           style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
+
+            if fileDialog.ShowModal() == wx.ID_CANCEL:
+                return     # the user changed their mind
+            pathname = fileDialog.GetPath()
+            try:
+                shutil.copy(bytecode_path, pathname)
+            except IOError:
+                wx.LogError(f"Cannot save current data in file {pathname}.")
+
+class ScreenPrintOutputCtrl:
+    def __init__(self):
+        pass
+    def compileImage(event):
+        """Designate an output file for screenshots and control the flow of images to said file
+        #TODO:compile image as <macroRecordingFileName>_<shotnumber>.png and save into a temporary output file
+        """
+        try:
+            bytecode_path = pyclip.paste
         except:
             wx.LogError("No capture loaded")
             return
