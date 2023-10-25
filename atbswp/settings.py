@@ -24,7 +24,7 @@ from datetime import date
 
 
 CONFIG = configparser.ConfigParser()
-VERSION = "0.3.1"
+VERSION = "0.3.2"
 YEAR = date.today().strftime("%Y")
 
 
@@ -59,4 +59,5 @@ except:
         "Language": "en",
         "Recording Timer": 0,
         "Mouse Speed": 21,
+        "Record Mouse Events": True,
     }

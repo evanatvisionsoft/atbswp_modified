@@ -37,8 +37,13 @@ class MainDialog(wx.Dialog, wx.MiniFrame):
 
     app_text = ["Load Capture", "Save", "Start/Stop Capture", "Play", "Compile to executable",
                 "Preferences", "Help"]
+    global app_list_length
+    app_list_length = len(app_text)
     settings_text = ["Play &Speed: Fast", "&Infinite Playback", "Set &Repeat Count", "Recording &Hotkey",
-                     "&Playback Hotkey", "Always on &Top", "&Language", "&About", "&Exit"]
+                     "&Playback Hotkey", "Always on &Top", "&Language", "&About", "&Recording Timer",
+                     "&Mouse Speed", "&Record Mouse Events", "&Exit"]
+    global settings_list_length
+    settings_list_length = len(settings_text)
 
     def on_settings_click(self, event):
         """Triggered when the popup menu is clicked."""
@@ -111,6 +116,7 @@ class MainDialog(wx.Dialog, wx.MiniFrame):
         self.Bind(wx.EVT_MENU,
                   self.on_about,
                   menu.Append(wx.ID_ABOUT, self.settings_text[7]))
+        menu.AppendSeparator()
 
         # Recording Timer
         self.Bind(wx.EVT_MENU,
@@ -121,6 +127,17 @@ class MainDialog(wx.Dialog, wx.MiniFrame):
         self.Bind(wx.EVT_MENU,
                   control.RecordCtrl.mouse_speed,
                   menu.Append(wx.ID_ANY, self.settings_text[9]))
+
+        # Enable/Disable Mouse Listener
+        eml = menu.AppendCheckItem(wx.ID_ANY, self.settings_text[10])
+        status = settings.CONFIG.getboolean('DEFAULT', 'Record Mouse Events')
+        eml.Check(status)
+        self.Bind(wx.EVT_MENU,
+                  control.SettingsCtrl.enable_mouse_listener,
+                  eml)
+
+        checkmenuitemcount = menu.GetMenuItemCount()
+        checkmenuitems = menu.GetMenuItems()
         return menu
 
     def __init__(self, *args, **kwds):
@@ -140,8 +157,13 @@ class MainDialog(wx.Dialog, wx.MiniFrame):
         self.taskbar = TaskBarIcon(self)
         self.taskbar.SetIcon(self.icon, "atbswp")
 
-        locale = self.__load_locale()
-        self.app_text, self.settings_text = locale[:7], locale[7:]
+        applocale, settingslocale = self.__load_locale()
+
+        global app_list_length, settings_list_length
+        self.app_text = applocale
+        self.settings_text = settingslocale #decides how long each menu is based on the full current list of items.
+        '''Default --- locale[:7], locale[7:]'''
+        '''testchange --- locale[:app_list_length], locale[app_list_length:]'''
         self.file_open_button = wx.BitmapButton(self,
                                                 wx.ID_ANY,
                                                 wx.Bitmap(os.path.join(self.path, "img", "file-upload.png"),
@@ -189,12 +211,12 @@ class MainDialog(wx.Dialog, wx.MiniFrame):
         """Load the interface in user-defined language (default english)."""
         try:
             lang = settings.CONFIG.get('DEFAULT', 'Language')
-            locale = open(os.path.join(self.path, "lang", lang)
+            applocale, settingslocale = open(os.path.join(self.path, "lang", lang)
                           ).read().splitlines()
         except:
-            return self.app_text + self.settings_text
+            return self.app_text, self.settings_text
 
-        return locale
+        return applocale, settingslocale
 
     def __add_bindings(self):
         # file_save_ctrl
@@ -331,10 +353,10 @@ class MainDialog(wx.Dialog, wx.MiniFrame):
         info = wx.adv.AboutDialogInfo()
         info.Name = "atbswp"
         info.Version = f"{settings.VERSION}"
-        info.Copyright = (f"©{settings.YEAR} Paul Mairo <github@rmpr.xyz>\n")
-        info.Description = "Record mouse and keyboard actions and reproduce them identically at will"
+        info.Copyright = (f"Original Source: ©{settings.YEAR} Paul Mairo <github@rmpr.xyz> Modifications: ©{settings.YEAR} Evan Hamilton\n")
+        info.Description = "Record mouse and/or keyboard actions, reproduce them identically at will, and save screenshots into a predetermined file"
         info.WebSite = ("https://github.com/atbswp", "Project homepage")
-        info.Developers = ["Paul Mairo"]
+        info.Developers = ["Paul Mairo", "Evan Hamilton"]
         info.License = "GNU General Public License V3"
         info.Icon = self.icon
         wx.adv.AboutBox(info)

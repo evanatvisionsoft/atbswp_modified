@@ -40,7 +40,9 @@ import wx.adv
 import wx.lib.newevent as NE
 
 import pyclip
-import pypng
+import png
+
+loadedMacroFileName = "nofileloaded"
 
 
 TMP_PATH = os.path.join(tempfile.gettempdir(),
@@ -93,6 +95,8 @@ class FileChooserCtrl:
             with open(TMP_PATH, 'w') as f:
                 f.write(self._capture)
         event.EventObject.Parent.panel.SetFocus()
+        global loadedMacroFileName
+        loadedMacroFileName = (dlg.Filename).removesuffix(".pyc") #pulls the loaded file name for printscreen names
         dlg.Destroy()
 
     def save_file(self, event):
@@ -128,6 +132,8 @@ class RecordCtrl:
 
         self._capture = [self._header]
         self._lastx, self._lasty = pyautogui.position()
+        self.recordMouse = settings.CONFIG.getboolean(
+            'DEFAULT', 'Record Mouse Events')
         if getattr(sys, 'frozen', False):
             self.path = sys._MEIPASS
         else:
@@ -174,10 +180,9 @@ class RecordCtrl:
         LOOKUP_SPECIAL_KEY[keyboard.Key.insert] = 'insert'
         LOOKUP_SPECIAL_KEY[keyboard.Key.num_lock] = 'num_lock'
         LOOKUP_SPECIAL_KEY[keyboard.Key.pause] = 'pause'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.print_screen] = 'print_screen'
+        LOOKUP_SPECIAL_KEY[keyboard.Key.print_screen] = 'print_screen' #IMPORTANT
         LOOKUP_SPECIAL_KEY[keyboard.Key.scroll_lock] = 'scroll_lock'
         #TODO:SETUP MAINFRAME CONTROL KEYS
-        #LOOKUP_SPECIAL_KEY[keyboard.Key.]
 
 
     def write_mouse_action(self, engine="pyautogui", move="", parameters=""):
@@ -199,8 +204,8 @@ class RecordCtrl:
             coordinates = [int(s)
                            for s in parameters.split(", ") if isinteger(s)]
             if abs(coordinates[0] - self._lastx) < self.mouse_sensibility \
-               and abs(coordinates[1] - self._lasty) < self.mouse_sensibility:
-                return
+                and abs(coordinates[1] - self._lasty) < self.mouse_sensibility:
+                    return
             else:
                 self._lastx, self._lasty = coordinates
         self._capture.append(engine + "." + move + '(' + parameters + ')')
@@ -307,7 +312,7 @@ class RecordCtrl:
             current_value = 0
 
         dialog = wx.NumberEntryDialog(None, message="Choose an amount of time (seconds)",
-                                      prompt="", caption="Recording Timer", value=current_value, min=0, max=999)
+                                      prompt="", caption="Recording Timer", value=current_value, min=0, max=999) #IMPORTANT - SETS MAX MACRO TIME
         dialog.ShowModal()
         new_value = dialog.Value
         dialog.Destroy()
@@ -331,11 +336,12 @@ class RecordCtrl:
 
     def action(self, event):
         """Triggered when the recording button is clicked on the GUI."""
-        self.mouse_sensibility = settings.CONFIG.getint("DEFAULT", "Mouse Speed")
-        listener_mouse = mouse.Listener(
-            on_move=self.on_move,
-            on_click=self.on_click,
-            on_scroll=self.on_scroll)
+        if self.recordMouse == True:
+            self.mouse_sensibility = settings.CONFIG.getint("DEFAULT", "Mouse Speed")
+            listener_mouse = mouse.Listener(
+                on_move=self.on_move,
+                on_click=self.on_click,
+                on_scroll=self.on_scroll)
         listener_keyboard = keyboard.Listener(
             on_press=self.on_press,
             on_release=self.on_release)
@@ -358,7 +364,8 @@ class RecordCtrl:
                 self.countdown_dialog.ShowModal()
 
             listener_keyboard.start()
-            listener_mouse.start()
+            if self.recordMouse == True:
+                listener_mouse.start()
             self.last_time = time.perf_counter()
             self.recording = True
             recording_state = wx.Icon(os.path.join(
@@ -388,6 +395,9 @@ class RecordCtrl:
             self.countdown_dialog.Update(
                 self.timer, f"The recording will start in {self.timer} second(s)")
 
+    def on_screen_print(self, event):
+        """track the use of the print_screen special key, read clipboard data, and save as png file as macroname_(cap_number).png"""
+        #if self.on_press
 class ControlKeys:
     def __init__(self):
         pass
@@ -484,7 +494,7 @@ class CompileCtrl:
             except IOError:
                 wx.LogError(f"Cannot save current data in file {pathname}.")
 
-class ScreenPrintOutputCtrl:
+class ScreenPrintOutputCtrl: #Might replace directly into recording and playback
     def __init__(self):
         pass
     def compileImage(event):
@@ -496,9 +506,9 @@ class ScreenPrintOutputCtrl:
         except:
             wx.LogError("No capture loaded")
             return
-        default_file = "capture.pyc"
+        default_file = "%(testname).png" %{'testname': loadedMacroFileName}
         event.EventObject.Parent.panel.SetFocus()
-        with wx.FileDialog(parent=event.GetEventObject().Parent, message="Save capture executable",
+        with wx.FileDialog(parent=event.GetEventObject().Parent, message="Save Test Screenprint",
                            defaultDir=os.path.expanduser("~"), defaultFile=default_file, wildcard="*",
                            style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
 
@@ -583,7 +593,7 @@ class SettingsCtrl:
         settings.CONFIG['DEFAULT']['Always On Top'] = str(not current_value)
 
     def language(self, event):
-        """Manage the language among the one available."""
+        """Manage the language among the ones available."""
         menu = event.EventObject
         item = menu.FindItemById(event.Id)
         settings.CONFIG['DEFAULT']['Language'] = item.GetItemLabelText()
@@ -592,6 +602,14 @@ class SettingsCtrl:
                                   message="Restart the program to apply modifications",
                                   pos=wx.DefaultPosition)
         dialog.ShowModal()
+
+    @staticmethod
+    def enable_mouse_listener(event):
+        """Toggle the record mouse events setting"""
+        current_value = settings.CONFIG.getboolean(
+            'DEFAULT', 'Record Mouse Events')
+        settings.CONFIG['DEFAULT']['Record Mouse Events'] = str(
+            not current_value)
 
 
 class HelpCtrl:
