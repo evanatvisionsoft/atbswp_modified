@@ -42,7 +42,7 @@ import wx.lib.newevent as NE
 import pyclip
 import png
 
-loadedMacroFileName = "nofileloaded"
+loadedMacroFileName = "unsavedtestmacro"
 
 
 TMP_PATH = os.path.join(tempfile.gettempdir(),
@@ -57,7 +57,64 @@ HEADER = (
     f"pyautogui.FAILSAFE = False\n"
 )
 
-LOOKUP_SPECIAL_KEY = {}
+LOOKUP_SPECIAL_KEY = {
+    keyboard.Key.alt_l:'altleft',
+    keyboard.Key.alt_r:'altright',
+    keyboard.Key.alt_gr:'altright',
+    keyboard.Key.backspace:'backspace',
+    keyboard.Key.caps_lock:'capslock',
+    keyboard.Key.cmd:'winleft',
+    keyboard.Key.cmd_r:'winright',
+    keyboard.Key.ctrl:'ctrlleft',
+    keyboard.Key.ctrl_r:'ctrlright',
+    keyboard.Key.delete:'delete',
+    keyboard.Key.down:'down',
+    keyboard.Key.end:'end',
+    keyboard.Key.enter:'enter',
+    keyboard.Key.esc:'esc',
+    keyboard.Key.f1:'f1',
+    keyboard.Key.f2:'f2',
+    keyboard.Key.f3:'f3',
+    keyboard.Key.f4:'f4',
+    keyboard.Key.f5:'f5',
+    keyboard.Key.f6:'f6',
+    keyboard.Key.f7:'f7',
+    keyboard.Key.f8:'f8',
+    keyboard.Key.f9:'f9',
+    keyboard.Key.f10:'f10',
+    keyboard.Key.f11:'f11',
+    keyboard.Key.f12:'f12',
+    keyboard.Key.home:'home',
+    keyboard.Key.left:'left',
+    keyboard.Key.page_down:'pagedown',
+    keyboard.Key.page_up:'pageup',
+    keyboard.Key.right:'right',
+    keyboard.Key.shift:'shift_left',
+    keyboard.Key.shift_r:'shiftright',
+    keyboard.Key.space:'space',
+    keyboard.Key.tab:'tab',
+    keyboard.Key.up:'up',
+    keyboard.Key.media_play_pause:'playpause',
+    keyboard.Key.insert:'insert',
+    keyboard.Key.num_lock:'num_lock',
+    keyboard.Key.pause:'pause',
+    keyboard.Key.print_screen:'print_screen', #IMPORTANT
+    keyboard.Key.scroll_lock:'scroll_lock'}
+
+LOOKUP_SPECIAL_WXKEY = {
+    wx.WXK_F1:'f1',
+    wx.WXK_F2:'f2',
+    wx.WXK_F3:'f3',
+    wx.WXK_F4:'f4',
+    wx.WXK_F5:'f5',
+    wx.WXK_F6:'f6',
+    wx.WXK_F7:'f7',
+    wx.WXK_F8:'f8',
+    wx.WXK_F9:'f9',
+    wx.WXK_F10:'f10',
+    wx.WXK_F11:'f11',
+    wx.WXK_F12:'f12',
+}
 
 
 class FileChooserCtrl:
@@ -103,7 +160,7 @@ class FileChooserCtrl:
         """Save the capture currently loaded."""
         event.EventObject.Parent.panel.SetFocus()
 
-        with wx.FileDialog(self.parent, "Save capture file", wildcard="*",
+        with wx.FileDialog(self.parent, "Save capture file", wildcard="Compiled Python File (*.pyc)|*.pyc",
                            style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
 
             if fileDialog.ShowModal() == wx.ID_CANCEL:
@@ -111,6 +168,8 @@ class FileChooserCtrl:
 
             # save the current contents in the file
             pathname = fileDialog.GetPath()
+            global loadedMacroFileName
+            loadedMacroFileName = (fileDialog.Filename).removesuffix(".pyc")
             try:
                 shutil.copy(TMP_PATH, pathname)
             except IOError:
@@ -139,49 +198,49 @@ class RecordCtrl:
         else:
             self.path = Path(__file__).parent.absolute()
 
-        LOOKUP_SPECIAL_KEY[keyboard.Key.alt] = 'alt'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.alt_l] = 'altleft'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.alt_r] = 'altright'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.alt_gr] = 'altright'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.backspace] = 'backspace'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.caps_lock] = 'capslock'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.cmd] = 'winleft'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.cmd_r] = 'winright'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.ctrl] = 'ctrlleft'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.ctrl_r] = 'ctrlright'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.delete] = 'delete'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.down] = 'down'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.end] = 'end'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.enter] = 'enter'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.esc] = 'esc'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.f1] = 'f1'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.f2] = 'f2'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.f3] = 'f3'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.f4] = 'f4'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.f5] = 'f5'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.f6] = 'f6'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.f7] = 'f7'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.f8] = 'f8'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.f9] = 'f9'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.f10] = 'f10'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.f11] = 'f11'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.f12] = 'f12'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.home] = 'home'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.left] = 'left'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.page_down] = 'pagedown'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.page_up] = 'pageup'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.right] = 'right'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.shift] = 'shift_left'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.shift_r] = 'shiftright'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.space] = 'space'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.tab] = 'tab'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.up] = 'up'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.media_play_pause] = 'playpause'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.insert] = 'insert'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.num_lock] = 'num_lock'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.pause] = 'pause'
-        LOOKUP_SPECIAL_KEY[keyboard.Key.print_screen] = 'print_screen' #IMPORTANT
-        LOOKUP_SPECIAL_KEY[keyboard.Key.scroll_lock] = 'scroll_lock'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.alt] = 'alt'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.alt_l] = 'altleft'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.alt_r] = 'altright'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.alt_gr] = 'altright'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.backspace] = 'backspace'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.caps_lock] = 'capslock'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.cmd] = 'winleft'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.cmd_r] = 'winright'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.ctrl] = 'ctrlleft'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.ctrl_r] = 'ctrlright'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.delete] = 'delete'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.down] = 'down'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.end] = 'end'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.enter] = 'enter'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.esc] = 'esc'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.f1] = 'f1'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.f2] = 'f2'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.f3] = 'f3'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.f4] = 'f4'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.f5] = 'f5'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.f6] = 'f6'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.f7] = 'f7'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.f8] = 'f8'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.f9] = 'f9'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.f10] = 'f10'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.f11] = 'f11'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.f12] = 'f12'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.home] = 'home'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.left] = 'left'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.page_down] = 'pagedown'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.page_up] = 'pageup'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.right] = 'right'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.shift] = 'shift_left'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.shift_r] = 'shiftright'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.space] = 'space'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.tab] = 'tab'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.up] = 'up'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.media_play_pause] = 'playpause'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.insert] = 'insert'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.num_lock] = 'num_lock'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.pause] = 'pause'
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.print_screen] = 'print_screen' #IMPORTANT
+        # LOOKUP_SPECIAL_KEY[keyboard.Key.scroll_lock] = 'scroll_lock'
         #TODO:SETUP MAINFRAME CONTROL KEYS
 
 
@@ -506,19 +565,20 @@ class ScreenPrintOutputCtrl: #Might replace directly into recording and playback
         except:
             wx.LogError("No capture loaded")
             return
-        default_file = "%(testname).png" %{'testname': loadedMacroFileName}
-        event.EventObject.Parent.panel.SetFocus()
-        with wx.FileDialog(parent=event.GetEventObject().Parent, message="Save Test Screenprint",
-                           defaultDir=os.path.expanduser("~"), defaultFile=default_file, wildcard="*",
-                           style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
+        filename = "%(testname).png" %{'testname': loadedMacroFileName}
+        if platform.system() == "Linux":
+            config_location = os.path.join(os.environ.get("HOME"), ".config")
+        elif platform.system() == "Windows":
+            config_location = os.environ.get("APPDATA")
+        else:
+            config_location = os.environ.get("HOME")
 
-            if fileDialog.ShowModal() == wx.ID_CANCEL:
-                return     # the user changed their mind
-            pathname = fileDialog.GetPath()
-            try:
-                shutil.copy(bytecode_path, pathname)
-            except IOError:
-                wx.LogError(f"Cannot save current data in file {pathname}.")
+        config_location = os.path.join(config_location, filename)
+
+
+def save_config():
+    with open(config_location, "w") as config_file:
+        CONFIG.write(config_file)
 
 
 class SettingsCtrl:
@@ -566,8 +626,10 @@ class SettingsCtrl:
                 None, "Recording hotkey should be different from Playback one", "Error", wx.OK | wx.ICON_ERROR)
             dlg.ShowModal()
             dlg.Destroy()
+        wx.Bind(event)
         dialog.Destroy()
         settings.CONFIG['DEFAULT']['Recording Hotkey'] = str(new_value)
+        #gui.MainDialog#wx.UpdateUIEvent.
 
     @staticmethod
     def playback_hotkey(event):
@@ -610,6 +672,7 @@ class SettingsCtrl:
             'DEFAULT', 'Record Mouse Events')
         settings.CONFIG['DEFAULT']['Record Mouse Events'] = str(
             not current_value)
+
 
 
 class HelpCtrl:

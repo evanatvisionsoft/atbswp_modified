@@ -61,3 +61,16 @@ except:
         "Mouse Speed": 21,
         "Record Mouse Events": True,
     }
+    #TODO: figure out if the below is needed or not
+    CONFIG["CUSTOM"] = {
+        "Fast Play Speed": False,
+        "Infinite Playback": False,
+        "Repeat Count": 1,
+        "Recording Hotkey": 348,
+        "Playback Hotkey": 349,
+        "Always On Top": True,
+        "Language": "en",
+        "Recording Timer": 0,
+        "Mouse Speed": 21,
+        "Record Mouse Events": False,
+    }

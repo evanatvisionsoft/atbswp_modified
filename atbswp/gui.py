@@ -79,6 +79,7 @@ class MainDialog(wx.Dialog, wx.MiniFrame):
         self.Bind(wx.EVT_MENU,
                   control.SettingsCtrl.recording_hotkey,
                   menu.Append(wx.ID_ANY, self.settings_text[3]))
+        #TODO:autoupdate preinitialized tooltips self.Bind(wx.EVT_UPDATE_UI, handler = control.SettingsCtrl.recording_hotkey, id = record_button)
 
         # Playback hotkey
         self.Bind(wx.EVT_MENU,
@@ -142,6 +143,11 @@ class MainDialog(wx.Dialog, wx.MiniFrame):
 
     def __init__(self, *args, **kwds):
         """Build the interface."""
+
+        def wxhotkeysnatcher(self, configtype, configgrabber):
+            self.testvar = int(settings.CONFIG.get(configtype, configgrabber))
+            pullHotkey = control.LOOKUP_SPECIAL_WXKEY.get(self.testvar)
+            return pullHotkey
         if getattr(sys, 'frozen', False):
             self.path = sys._MEIPASS
         else:
@@ -178,14 +184,14 @@ class MainDialog(wx.Dialog, wx.MiniFrame):
                                                    wx.ID_ANY,
                                                    wx.Bitmap(os.path.join(self.path, "img", "video.png"),
                                                              wx.BITMAP_TYPE_ANY))
-        self.record_button.SetToolTip(self.app_text[2])
+        self.record_button.SetToolTip(self.app_text[2] + " Hotkey: " + wxhotkeysnatcher(self, 'DEFAULT', 'Recording Hotkey'))#TODO
         self.play_button = wx.BitmapToggleButton(self,
                                                  wx.ID_ANY,
                                                  wx.Bitmap(os.path.join(self.path, "img", "play-circle.png"),
                                                            wx.BITMAP_TYPE_ANY))
         self.remaining_plays = wx.StaticText(self, label=settings.CONFIG.get("DEFAULT", "Repeat Count"),
                                              style=wx.ALIGN_CENTRE_HORIZONTAL)
-        self.play_button.SetToolTip(self.app_text[3])
+        self.play_button.SetToolTip(self.app_text[3] + " Hotkey: " + wxhotkeysnatcher(self, 'DEFAULT', 'Playback Hotkey'))#TODO
         self.compile_button = wx.BitmapButton(self,
                                               wx.ID_ANY,
                                               wx.Bitmap(os.path.join(self.path, "img", "download.png"),
@@ -286,6 +292,8 @@ class MainDialog(wx.Dialog, wx.MiniFrame):
 
         if keycode == wx.WXK_F1:
             control.HelpCtrl.action(wx.PyCommandEvent(wx.wxEVT_BUTTON))
+
+        #TODO: add listener mods to check for keypresses while window unfocused
 
         elif keycode == settings.CONFIG.getint('DEFAULT', 'Recording Hotkey'):
             btn_event = wx.CommandEvent(wx.wxEVT_TOGGLEBUTTON)
