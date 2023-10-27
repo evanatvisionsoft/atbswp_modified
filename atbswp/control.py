@@ -43,6 +43,8 @@ import pyclip
 import png
 
 loadedMacroFileName = "unsavedtestmacro"
+loadedMacroFilePath = "~"
+shotcount = 0
 
 
 TMP_PATH = os.path.join(tempfile.gettempdir(),
@@ -115,7 +117,7 @@ LOOKUP_SPECIAL_WXKEY = {
     wx.WXK_F11:'f11',
     wx.WXK_F12:'f12',
 }
-
+#TODO:SETUP MAINFRAME CONTROL KEYS
 
 class FileChooserCtrl:
     """Control class for both the open capture and save capture options.
@@ -153,7 +155,9 @@ class FileChooserCtrl:
                 f.write(self._capture)
         event.EventObject.Parent.panel.SetFocus()
         global loadedMacroFileName
+        global loadedMacroFilePath
         loadedMacroFileName = (dlg.Filename).removesuffix(".pyc") #pulls the loaded file name for printscreen names
+        loadedMacroFilePath = dlg.GetPath().removesuffix(str(dlg.Filename))
         dlg.Destroy()
 
     def save_file(self, event):
@@ -169,7 +173,9 @@ class FileChooserCtrl:
             # save the current contents in the file
             pathname = fileDialog.GetPath()
             global loadedMacroFileName
+            global loadedMacroFilePath
             loadedMacroFileName = (fileDialog.Filename).removesuffix(".pyc")
+            loadedMacroFilePath = fileDialog.GetPath().removesuffix(str(fileDialog.Filename))
             try:
                 shutil.copy(TMP_PATH, pathname)
             except IOError:
@@ -198,52 +204,6 @@ class RecordCtrl:
         else:
             self.path = Path(__file__).parent.absolute()
 
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.alt] = 'alt'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.alt_l] = 'altleft'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.alt_r] = 'altright'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.alt_gr] = 'altright'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.backspace] = 'backspace'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.caps_lock] = 'capslock'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.cmd] = 'winleft'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.cmd_r] = 'winright'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.ctrl] = 'ctrlleft'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.ctrl_r] = 'ctrlright'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.delete] = 'delete'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.down] = 'down'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.end] = 'end'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.enter] = 'enter'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.esc] = 'esc'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.f1] = 'f1'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.f2] = 'f2'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.f3] = 'f3'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.f4] = 'f4'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.f5] = 'f5'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.f6] = 'f6'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.f7] = 'f7'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.f8] = 'f8'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.f9] = 'f9'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.f10] = 'f10'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.f11] = 'f11'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.f12] = 'f12'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.home] = 'home'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.left] = 'left'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.page_down] = 'pagedown'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.page_up] = 'pageup'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.right] = 'right'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.shift] = 'shift_left'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.shift_r] = 'shiftright'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.space] = 'space'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.tab] = 'tab'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.up] = 'up'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.media_play_pause] = 'playpause'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.insert] = 'insert'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.num_lock] = 'num_lock'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.pause] = 'pause'
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.print_screen] = 'print_screen' #IMPORTANT
-        # LOOKUP_SPECIAL_KEY[keyboard.Key.scroll_lock] = 'scroll_lock'
-        #TODO:SETUP MAINFRAME CONTROL KEYS
-
-
     def write_mouse_action(self, engine="pyautogui", move="", parameters=""):
         """Append a new mouse move to capture.
 
@@ -252,21 +212,6 @@ class RecordCtrl:
         move -- the mouse movement (mouseDown, mouseUp, scroll, moveTo)
         parameters -- the details of the movement
         """
-        def isinteger(s):
-            try:
-                int(s)
-                return True
-            except:
-                return False
-
-        if move == "moveTo":
-            coordinates = [int(s)
-                           for s in parameters.split(", ") if isinteger(s)]
-            if abs(coordinates[0] - self._lastx) < self.mouse_sensibility \
-                and abs(coordinates[1] - self._lasty) < self.mouse_sensibility:
-                    return
-            else:
-                self._lastx, self._lasty = coordinates
         self._capture.append(engine + "." + move + '(' + parameters + ')')
 
     def write_keyboard_action(self, engine="pyautogui", move="", key=""):
@@ -289,6 +234,20 @@ class RecordCtrl:
         """Triggered by a mouse move."""
         if not self.recording:
             return False
+
+        def isinteger(s):
+            try:
+                int(s)
+                return True
+            except:
+                return False
+
+        if abs(x - self._lastx) < self.mouse_sensibility \
+           and abs(y - self._lasty) < self.mouse_sensibility:
+            return
+        else:
+            self._lastx, self._lasty = x,y
+
         b = time.perf_counter()
         timeout = float(b - self.last_time)
         if timeout > 0.0:
@@ -329,7 +288,7 @@ class RecordCtrl:
         """Triggered by a mouse wheel scroll."""
         if not self.recording:
             return False
-        self.write_mouse_action(move="scroll", parameters=f"{y}")
+        self.write_mouse_action(move="scroll", parameters=f"{dy}")
 
     def on_press(self, key):
         """Triggered by a key press."""
@@ -454,9 +413,10 @@ class RecordCtrl:
             self.countdown_dialog.Update(
                 self.timer, f"The recording will start in {self.timer} second(s)")
 
-    def on_screen_print(self, event):
+    def on_screen_print(self, key):
         """track the use of the print_screen special key, read clipboard data, and save as png file as macroname_(cap_number).png"""
         #if self.on_press
+
 class ControlKeys:
     def __init__(self):
         pass
@@ -561,19 +521,18 @@ class ScreenPrintOutputCtrl: #Might replace directly into recording and playback
         #TODO:compile image as <macroRecordingFileName>_<shotnumber>.png and save into a temporary output file
         """
         try:
-            bytecode_path = pyclip.paste
-        except:
-            wx.LogError("No capture loaded")
-            return
-        filename = "%(testname).png" %{'testname': loadedMacroFileName}
-        if platform.system() == "Linux":
-            config_location = os.path.join(os.environ.get("HOME"), ".config")
-        elif platform.system() == "Windows":
-            config_location = os.environ.get("APPDATA")
-        else:
-            config_location = os.environ.get("HOME")
+            datetime = date.today().strftime("%Y%m%d_%H:%M:%S")
+            image_data = pyclip.paste()
+            filename = "%(testname)_%(shotcount)_%(datetime).png" %{'testname': loadedMacroFileName, 'shotcount':shotcount, 'datetime': datetime}
+            if image_data is not None:
+                outputscreencap = png.Writer(width=image_data.width, height=image_data.height, greyscale=False, alpha=True)
+                filepath = os.path.join(loadedMacroFilePath, filename)
+                with open(filepath, 'wb') as f:
+                    outputscreencap.write(f, image_data.tobytes())
 
-        config_location = os.path.join(config_location, filename)
+                print(f"Screenshot saved to {filepath}")
+        except:
+            print("No image data in clipboard")
 
 
 def save_config():
