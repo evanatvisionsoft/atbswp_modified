@@ -3,11 +3,12 @@
 # atbswp: Record mouse and keyboard actions and reproduce them identically at will
 #
 # Copyright (C) 2019 Paul Mairo <github@rmpr.xyz>
+# Portions Copyright (C) 2023 Evan Hamilton <>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# (at your option) any later version.py_compile
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,13 +17,13 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-import os
+from os import path as osPath
 import py_compile
 import shutil
 import sys
 import tempfile
 import time
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from threading import Event
 from threading import Thread
@@ -40,14 +41,19 @@ import wx.adv
 import wx.lib.newevent as NE
 
 import pyclip
-import png
+from PIL import Image, ImageGrab
+# from io import BytesIO
 
+global loadedMacroFileName
 loadedMacroFileName = "unsavedtestmacro"
-loadedMacroFilePath = "~"
+global loadedMacroFilePath
+loadedMacroFilePath = ".\\captures"
+global shotcount
 shotcount = 0
+global dt
 
 
-TMP_PATH = os.path.join(tempfile.gettempdir(),
+TMP_PATH = osPath.join(tempfile.gettempdir(),
                         "atbswp-" + date.today().strftime("%Y%m%d"))
 HEADER = (
     f"#!/bin/env python3\n"
@@ -56,7 +62,12 @@ HEADER = (
     f"# on {date.today().strftime('%d %b %Y ')}\n"
     f"import pyautogui\n"
     f"import time\n"
+    f"from os import path as osPath\n"
+    f"from datetime import datetime\n"
+    f"from PIL import Image, ImageGrab\n"
     f"pyautogui.FAILSAFE = False\n"
+    f"shotcount = 0\n"
+    f"dt = datetime.now().strftime(\"%Y-%m-%d_%H-%M-%S\")\n"
 )
 
 LOOKUP_SPECIAL_KEY = {
@@ -136,7 +147,7 @@ class FileChooserCtrl:
     def load_content(self, path):
         """Load the temp file capture from disk."""
         # TODO: Better input control
-        if not path or not os.path.isfile(path):
+        if not path or not osPath.isfile(path):
             return None
         with open(path, 'r') as f:
             return f.read()
@@ -146,19 +157,29 @@ class FileChooserCtrl:
         title = "Choose a capture file:"
         dlg = wx.FileDialog(self.parent,
                             message=title,
+                            wildcard="Compiled Python File (*.pyc)|*.pyc|Uncompiled Python Files (*.py)|*.py",
                             defaultDir="~",
                             defaultFile="capture.py",
                             style=wx.DD_DEFAULT_STYLE)
         if dlg.ShowModal() == wx.ID_OK:
+            global loadedMacroFileName
+            global loadedMacroFilePath
+            loadedMacroFileName = (dlg.Filename).removesuffix(".pyc" or ".py") #pulls the loaded file name for printscreen names
+            loadedMacroFilePath = dlg.GetPath().removesuffix(str(dlg.Filename))
+            # s[i] = x
+            # item i of s is replaced by x
+            # find and replace the actual loadedMacroFileName and loadedMacroFilePath into the file before it gets writen over into the _capture constructor
+            # lines 11 and 12 of header currently contain the two vars FileName and FilePath respectively
             self._capture = self.load_content(dlg.GetPath())
+            # either run replace here
             with open(TMP_PATH, 'w') as f:
                 f.write(self._capture)
+                # or here after the temp file is writen
         event.EventObject.Parent.panel.SetFocus()
-        global loadedMacroFileName
-        global loadedMacroFilePath
-        loadedMacroFileName = (dlg.Filename).removesuffix(".pyc") #pulls the loaded file name for printscreen names
-        loadedMacroFilePath = dlg.GetPath().removesuffix(str(dlg.Filename))
         dlg.Destroy()
+        global shotcount
+        shotcount = 0
+
 
     def save_file(self, event):
         """Save the capture currently loaded."""
@@ -174,12 +195,18 @@ class FileChooserCtrl:
             pathname = fileDialog.GetPath()
             global loadedMacroFileName
             global loadedMacroFilePath
-            loadedMacroFileName = (fileDialog.Filename).removesuffix(".pyc")
+            loadedMacroFileName = (fileDialog.Filename).removesuffix(".pyc" or ".py")
             loadedMacroFilePath = fileDialog.GetPath().removesuffix(str(fileDialog.Filename))
             try:
                 shutil.copy(TMP_PATH, pathname)
             except IOError:
                 wx.LogError(f"Cannot save current data in file {pathname}.")
+
+
+    def combinefiles(self, event):
+        """Create combinations of previously saved macros to run in series"""
+        dialog = SliderDialog(None, title="Create combinations of previously saved macros to run in series", size=(500, 50))
+        dialog.ShowModal()
 
 
 class RecordCtrl:
@@ -199,6 +226,8 @@ class RecordCtrl:
         self._lastx, self._lasty = pyautogui.position()
         self.recordMouse = settings.CONFIG.getboolean(
             'DEFAULT', 'Record Mouse Events')
+        global dt
+        dt = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         if getattr(sys, 'frozen', False):
             self.path = sys._MEIPASS
         else:
@@ -214,6 +243,19 @@ class RecordCtrl:
         """
         self._capture.append(engine + "." + move + '(' + parameters + ')')
 
+    def print_screen_action(self):
+        image_data = ImageGrab.grabclipboard()
+        print(f"image_data = {image_data}")
+        filename = f"{loadedMacroFileName}_{shotcount}_{dt}.png"
+        print(f"filename = {filename}")
+        if image_data is not None:
+            filepath = osPath.join(loadedMacroFilePath, filename)
+            image_data.save(filepath, "PNG")
+            shotcount = shotcount+1
+            print(f"Screenshot saved to {filepath}")
+        else:
+            print("No image data in clipboard")
+
     def write_keyboard_action(self, engine="pyautogui", move="", key=""):
         """Append keyboard actions to the class variable capture.
 
@@ -228,7 +270,11 @@ class RecordCtrl:
             if move + suffix in self._capture[-1]:
                 move = 'press'
                 self._capture[-1] = engine + "." + move + suffix
-        self._capture.append(engine + "." + move + suffix)
+            # Screenprint fix
+            if suffix == "(\'print_screen\')":
+                self._capture.append("image_data = ImageGrab.grab()\nfilename = f\"{loadedMacroFileName}_{shotcount}_{dt}.png\"\nfilepath = osPath.join(loadedMacroFilePath, filename)\nimage_data.save(filepath, \"PNG\")\nshotcount = shotcount+1")
+            else: self._capture.append(engine + "." + move + suffix)
+
 
     def on_move(self, x, y):
         """Triggered by a mouse move."""
@@ -292,6 +338,7 @@ class RecordCtrl:
 
     def on_press(self, key):
         """Triggered by a key press."""
+        global shotcount
         b = time.perf_counter()
         timeout = float(b - self.last_time)
         if timeout > 0.0:
@@ -307,6 +354,20 @@ class RecordCtrl:
             self.write_keyboard_action(move="keyDown",
                                        key=LOOKUP_SPECIAL_KEY.get(key,
                                                                   self._error))
+        if LOOKUP_SPECIAL_KEY.get(key) == 'print_screen':
+            image_data = ImageGrab.grabclipboard()
+            print(f"image_data = {image_data}")
+            #TODO: get datetime to print TIME
+            filename = f"{loadedMacroFileName}_{shotcount}_{dt}.png"
+            print(f"filename = {filename}")
+            if image_data is not None:
+                filepath = osPath.join(loadedMacroFilePath, filename)
+                image_data.save(filepath, "PNG")
+                shotcount = shotcount+1
+                print(f"Screenshot saved to {filepath}")
+            else:
+                print("No image data in clipboard")
+
 
     def on_release(self, key):
         """Triggered by a key released."""
@@ -386,7 +447,7 @@ class RecordCtrl:
                 listener_mouse.start()
             self.last_time = time.perf_counter()
             self.recording = True
-            recording_state = wx.Icon(os.path.join(
+            recording_state = wx.Icon(osPath.join(
                 self.path, "img", "icon-recording.png"))
         else:
             self.recording = False
@@ -399,7 +460,7 @@ class RecordCtrl:
                 f.truncate()
             self._capture = [self._header]
             recording_state = wx.Icon(
-                os.path.join(self.path, "img", "icon.png"))
+                osPath.join(self.path, "img", "icon.png"))
         event.GetEventObject().GetParent().taskbar.SetIcon(recording_state)
 
     def update_timer(self, event):
@@ -412,10 +473,6 @@ class RecordCtrl:
             self.timer -= 1
             self.countdown_dialog.Update(
                 self.timer, f"The recording will start in {self.timer} second(s)")
-
-    def on_screen_print(self, key):
-        """track the use of the print_screen special key, read clipboard data, and save as png file as macroname_(cap_number).png"""
-        #if self.on_press
 
 class ControlKeys:
     def __init__(self):
@@ -461,7 +518,7 @@ class PlayCtrl:
             if not self.count_was_updated:
                 self.count = settings.CONFIG.getint('DEFAULT', 'Repeat Count')
                 self.count_was_updated = True
-            if TMP_PATH is None or not os.path.isfile(TMP_PATH):
+            if TMP_PATH is None or not osPath.isfile(TMP_PATH):
                 wx.LogError("No capture loaded")
                 event = self.ThreadEndEvent(
                     count=self.count, toggle_value=False)
@@ -480,7 +537,6 @@ class PlayCtrl:
             self.play_thread.end()
             self.count_was_updated = False
             settings.save_config()
-
 
 class CompileCtrl:
     """Produce an executable Python bytecode file."""
@@ -502,7 +558,7 @@ class CompileCtrl:
         default_file = "capture.pyc"
         event.EventObject.Parent.panel.SetFocus()
         with wx.FileDialog(parent=event.GetEventObject().Parent, message="Save capture executable",
-                           defaultDir=os.path.expanduser("~"), defaultFile=default_file, wildcard="*",
+                           defaultDir=osPath.expanduser("~"), defaultFile=default_file, wildcard="*",
                            style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
 
             if fileDialog.ShowModal() == wx.ID_CANCEL:
@@ -512,33 +568,6 @@ class CompileCtrl:
                 shutil.copy(bytecode_path, pathname)
             except IOError:
                 wx.LogError(f"Cannot save current data in file {pathname}.")
-
-class ScreenPrintOutputCtrl: #Might replace directly into recording and playback
-    def __init__(self):
-        pass
-    def compileImage(event):
-        """Designate an output file for screenshots and control the flow of images to said file
-        #TODO:compile image as <macroRecordingFileName>_<shotnumber>.png and save into a temporary output file
-        """
-        try:
-            datetime = date.today().strftime("%Y%m%d_%H:%M:%S")
-            image_data = pyclip.paste()
-            filename = "%(testname)_%(shotcount)_%(datetime).png" %{'testname': loadedMacroFileName, 'shotcount':shotcount, 'datetime': datetime}
-            if image_data is not None:
-                outputscreencap = png.Writer(width=image_data.width, height=image_data.height, greyscale=False, alpha=True)
-                filepath = os.path.join(loadedMacroFilePath, filename)
-                with open(filepath, 'wb') as f:
-                    outputscreencap.write(f, image_data.tobytes())
-
-                print(f"Screenshot saved to {filepath}")
-        except:
-            print("No image data in clipboard")
-
-
-def save_config():
-    with open(config_location, "w") as config_file:
-        CONFIG.write(config_file)
-
 
 class SettingsCtrl:
     """Control class for the settings."""
@@ -632,8 +661,6 @@ class SettingsCtrl:
         settings.CONFIG['DEFAULT']['Record Mouse Events'] = str(
             not current_value)
 
-
-
 class HelpCtrl:
     """Control class for the About menu."""
 
@@ -642,7 +669,6 @@ class HelpCtrl:
         """Open the browser on the quick demo of atbswp"""
         url = "https://youtu.be/L0jjSgX5FYk"
         wx.LaunchDefaultBrowser(url, flags=0)
-
 
 class PlayThread(Thread):
     """Thread with an end method triggered by a click on the Toggle button."""

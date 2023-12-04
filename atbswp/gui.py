@@ -1,6 +1,7 @@
 # Record mouse and keyboard actions and reproduce them identically at will
 #
 # Copyright (C) 2019 Paul Mairo <github@rmpr.xyz>
+# Portions Copyright (C) 2023 Evan Hamilton <>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -184,6 +185,7 @@ class MainDialog(wx.Dialog, wx.MiniFrame):
                                                    wx.ID_ANY,
                                                    wx.Bitmap(os.path.join(self.path, "img", "video.png"),
                                                              wx.BITMAP_TYPE_ANY))
+
         self.record_button.SetToolTip(self.app_text[2] + " Hotkey: " + wxhotkeysnatcher(self, 'DEFAULT', 'Recording Hotkey'))#TODO
         self.play_button = wx.BitmapToggleButton(self,
                                                  wx.ID_ANY,

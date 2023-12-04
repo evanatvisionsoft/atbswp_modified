@@ -2,6 +2,7 @@
 # Record mouse and keyboard actions and reproduce them identically at will
 #
 # Copyright (C) 2019 Paul Mairo <github@rmpr.xyz>
+# Portions Copyright (C) 2023 Evan Hamilton <>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

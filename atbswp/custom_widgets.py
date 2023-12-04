@@ -3,6 +3,7 @@
 # atbswp: Record mouse and keyboard actions and reproduce them identically at will
 #
 # Copyright (C) 2019 Paul Mairo <github@rmpr.xyz>
+# Portions Copyright (C) 2023 Evan Hamilton <>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,6 +20,8 @@
 
 import wx
 
+#TODO: Replace Settings options for changing Hotkeys with a key listener to allow the creation of hotkey combos
+#      On clicking the dropdown option, a window should appear showing the current hotkey and prompting the user to click a button if they want to change it.
 
 class SliderDialog(wx.Dialog):
     """Wrap a slider in a dialog and get the value"""
